@@ -25,26 +25,35 @@ class MainActivity : AppCompatActivity() {
         binding.errorTextView.isVisible = false
 
         binding.goButton.setOnClickListener {
-            when (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            if (checkGpsPermission()) {
+                showCoordinates()
+            } else {
+                requestPermissions(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    GPS_PERMISSION_REQUEST_CODE
+                )
+                binding.errorTextView.isVisible = true
+            }
+        }
+    }
 
-                PackageManager.PERMISSION_DENIED -> {
-                    requestPermissions(
-                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                        GPS_PERMISSION_REQUEST_CODE
-                    )
-                    binding.errorTextView.isVisible = true
-                }
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun checkGpsPermission(): Boolean {
+        when (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            PackageManager.PERMISSION_GRANTED -> return true
+            PackageManager.PERMISSION_DENIED -> return false
+        }
+        return false
+    }
 
-                PackageManager.PERMISSION_GRANTED -> {
-                    binding.errorTextView.isVisible = false
-                    val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f) {
-                        with(binding) {
-                            latTextView.text = it.latitude.toString()
-                            lonTextView.text = it.longitude.toString()
-                        }
-                    }
-                }
+    @SuppressLint("MissingPermission")
+    fun showCoordinates() {
+        binding.errorTextView.isVisible = false
+        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f) {
+            with(binding) {
+                latTextView.text = it.latitude.toString()
+                lonTextView.text = it.longitude.toString()
             }
         }
     }
@@ -57,15 +66,8 @@ class MainActivity : AppCompatActivity() {
     ) {
         if (requestCode == GPS_PERMISSION_REQUEST_CODE) {
             val pos = permissions.indexOf(Manifest.permission.ACCESS_FINE_LOCATION)
-            if (grantResults [pos] == PackageManager.PERMISSION_GRANTED){
-                binding.errorTextView.isVisible = false
-                val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f) {
-                    with(binding) {
-                        latTextView.text = it.latitude.toString()
-                        lonTextView.text = it.longitude.toString()
-                    }
-                }
+            if (grantResults[pos] == PackageManager.PERMISSION_GRANTED) {
+                showCoordinates()
             } else {
                 binding.errorTextView.isVisible = true
             }
