@@ -2,12 +2,16 @@ package com.example.lesson09
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import com.example.lesson09.databinding.ActivityMainBinding
 
@@ -28,13 +32,27 @@ class MainActivity : AppCompatActivity() {
             if (checkGpsPermission()) {
                 showCoordinates()
             } else {
-                requestPermissions(
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                    GPS_PERMISSION_REQUEST_CODE
-                )
+                showRequestPermissionRationale()
+//                requestPermission()
                 binding.errorTextView.isVisible = true
             }
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun showRequestPermissionRationale() {
+        shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
+        AlertDialog.Builder(this)
+            .setTitle("Доступ к GPS")
+            .setMessage("Пожалуйста, предоставте доступ к GPS. Он нам нужен для отображения ваших координат")
+            .setPositiveButton("Предоставить доступ") { _, _ ->
+                requestPermission()
+            }
+            .setNegativeButton("Не надо") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+            .show()
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -44,6 +62,14 @@ class MainActivity : AppCompatActivity() {
             PackageManager.PERMISSION_DENIED -> return false
         }
         return false
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun requestPermission() {
+        requestPermissions(
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+            GPS_PERMISSION_REQUEST_CODE
+        )
     }
 
     @SuppressLint("MissingPermission")
