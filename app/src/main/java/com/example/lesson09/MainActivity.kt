@@ -2,13 +2,18 @@ package com.example.lesson09
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ContentResolver
 import android.content.pm.PackageManager
+import android.database.Cursor
 import android.location.LocationManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.ContactsContract
+import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.view.isVisible
 import com.example.lesson09.databinding.ActivityMainBinding
 
@@ -111,8 +116,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("Range")
     fun showContacts() {
-        binding.contactsTextView.text = "Доступ получен! Осталось отобразить!"
+//        binding.contactsTextView.text = "Доступ получен! Осталось отобразить!"
+        this?.let {
+            val contentResolver: ContentResolver = it.contentResolver
+            // Отправляем запрос на получение контактов и получаем ответ в виде Cursor
+            val cursorWithContacts: Cursor? = contentResolver.query(
+                ContactsContract.Contacts.CONTENT_URI, null, null, null,
+                ContactsContract.Contacts.DISPLAY_NAME
+            )
+            cursorWithContacts?.let { cursor ->
+                for (i in 0..cursor.count) {
+                    // Переходим на позицию в Cursor
+                    if (cursor.moveToPosition(i)) {
+                        // Берём из Cursor столбец с именем
+                        val name =
+                            cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME))
+                        addView(name)
+                    }
+
+                }
+            }
+            cursorWithContacts?.close()
+        }
+    }
+
+    fun addView(textToShow: String) {
+        binding.mainLinearLayout.addView(AppCompatTextView(this).apply {
+            text = textToShow
+        })
     }
 
     @SuppressLint("MissingPermission")
@@ -137,6 +170,6 @@ class MainActivity : AppCompatActivity() {
             } else {
                 binding.contactsTextView.text = "Нет доступа к контактам"
             }
-        }else super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        } else super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 }
