@@ -2,20 +2,18 @@ package com.example.lesson09
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import com.example.lesson09.databinding.ActivityMainBinding
 
 private const val GPS_PERMISSION_REQUEST_CODE = 1234
+private const val CONTACTS_PERMISSION_REQUEST_CODE = 12345
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -28,25 +26,55 @@ class MainActivity : AppCompatActivity() {
 
         binding.errorTextView.isVisible = false
 
-        binding.goButton.setOnClickListener {
-            if (checkGpsPermission()) {
+        binding.gpsButton.setOnClickListener {
+            if (checkPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
                 showCoordinates()
             } else {
-                showRequestPermissionRationale()
-//                requestPermission()
+                showRequestPermissionRationale(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    GPS_PERMISSION_REQUEST_CODE
+                )
                 binding.errorTextView.isVisible = true
+            }
+        }
+
+        binding.contactsButton.setOnClickListener {
+            if (checkPermission(Manifest.permission.READ_CONTACTS)) {
+                showContacts()
+            } else {
+                showRequestPermissionRationale(
+                    Manifest.permission.READ_CONTACTS,
+                    CONTACTS_PERMISSION_REQUEST_CODE
+                )
+                binding.contactsTextView.text = "Нет доступа к контактам"
             }
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun showRequestPermissionRationale() {
-        shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
+    fun showRequestPermissionRationale(permission: String, requestCode: Int) {
+        var title = ""
+        var message = ""
+
+        when (permission) {
+            Manifest.permission.ACCESS_FINE_LOCATION -> {
+                title = "Доступ к GPS"
+                message =
+                    "Пожалуйста, предоставте доступ к GPS. Он нам нужен для отображения ваших координат"
+            }
+            Manifest.permission.READ_CONTACTS -> {
+                title = "Доступ к Контактам"
+                message =
+                    "Пожалуйста, предоставте доступ к Контактам. Он нам нужен для отображения ваших контаков"
+            }
+        }
+
+        shouldShowRequestPermissionRationale(permission)
         AlertDialog.Builder(this)
-            .setTitle("Доступ к GPS")
-            .setMessage("Пожалуйста, предоставте доступ к GPS. Он нам нужен для отображения ваших координат")
+            .setTitle(title)
+            .setMessage(message)
             .setPositiveButton("Предоставить доступ") { _, _ ->
-                requestPermission()
+                requestPermission(permission, requestCode)
             }
             .setNegativeButton("Не надо") { dialog, _ ->
                 dialog.dismiss()
@@ -56,8 +84,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun checkGpsPermission(): Boolean {
-        when (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+    fun checkPermission(permission: String): Boolean {
+        when (checkSelfPermission(permission)) {
             PackageManager.PERMISSION_GRANTED -> return true
             PackageManager.PERMISSION_DENIED -> return false
         }
@@ -65,10 +93,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun requestPermission() {
+    fun requestPermission(permission: String, requestCode: Int) {
         requestPermissions(
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-            GPS_PERMISSION_REQUEST_CODE
+            arrayOf(permission), requestCode
         )
     }
 
@@ -84,6 +111,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun showContacts() {
+        binding.contactsTextView.text = "Доступ получен! Осталось отобразить!"
+    }
+
     @SuppressLint("MissingPermission")
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -97,6 +128,15 @@ class MainActivity : AppCompatActivity() {
             } else {
                 binding.errorTextView.isVisible = true
             }
-        } else super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
+
+        if (requestCode == CONTACTS_PERMISSION_REQUEST_CODE) {
+            val pos = permissions.indexOf(Manifest.permission.READ_CONTACTS)
+            if (grantResults[pos] == PackageManager.PERMISSION_GRANTED) {
+                showContacts()
+            } else {
+                binding.contactsTextView.text = "Нет доступа к контактам"
+            }
+        }else super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 }
