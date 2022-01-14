@@ -3,13 +3,16 @@ package com.example.lesson09
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentResolver
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
+import android.location.Geocoder
 import android.location.LocationManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.util.Log
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
@@ -19,6 +22,7 @@ import com.example.lesson09.databinding.ActivityMainBinding
 
 private const val GPS_PERMISSION_REQUEST_CODE = 1234
 private const val CONTACTS_PERMISSION_REQUEST_CODE = 12345
+private const val TAG = "@@@ MainActivity"
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -106,19 +110,41 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     fun showCoordinates() {
+        Log.d(TAG, "showCoordinates() called")
         binding.errorTextView.isVisible = false
+        var lat = 0.0
+        var lon = 0.0
         val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f) {
-            with(binding) {
-                latTextView.text = it.latitude.toString()
-                lonTextView.text = it.longitude.toString()
+            if (lat != it.latitude || lon != it.longitude) {
+                lat = it.latitude
+                lon = it.longitude
+                with(binding) {
+                    latTextView.text = it.latitude.toString()
+                    lonTextView.text = it.longitude.toString()
+                }
+                Log.d(TAG, "showCoordinates() called in request requestLocationUpdates")
+                if (Geocoder.isPresent()) {
+                    Thread {
+                        Log.d(TAG, "showCoordinates() called" + Thread.currentThread().id)
+                        val geocoder = Geocoder(this)
+                        val addrList = geocoder.getFromLocation(it.latitude, it.longitude, 1)
+                        addrList.firstOrNull()?.let {
+                            runOnUiThread {
+                                binding.addrTextView.text = it.getAddressLine(0)
+                                MapsActivity.start(this, it.latitude, it.longitude)
+                            }
+                        }
+                    }.start()
+                }
             }
+
+
         }
     }
 
     @SuppressLint("Range")
     fun showContacts() {
-//        binding.contactsTextView.text = "Доступ получен! Осталось отобразить!"
         this?.let {
             val contentResolver: ContentResolver = it.contentResolver
             // Отправляем запрос на получение контактов и получаем ответ в виде Cursor
